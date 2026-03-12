@@ -906,12 +906,14 @@ function getCurrentActivity() {
   const dayIdx = DAYS.findIndex(d => d.date === today);
 
   if (dayIdx === -1) {
-    const tripStart = new Date('2026-03-13T08:30:00+01:00');
+    const tripStart = new Date('2026-03-13T06:00:00+01:00');
     const diff = tripStart - now;
     if (diff > 0) {
       const days = Math.floor(diff / 86400000);
       const hours = Math.floor((diff % 86400000) / 3600000);
-      return { type: 'countdown', days, hours };
+      const minutes = Math.floor((diff % 3600000) / 60000);
+      const seconds = Math.floor((diff % 60000) / 1000);
+      return { type: 'countdown', days, hours, minutes, seconds };
     }
     const tripEnd = new Date('2026-03-15T22:30:00+01:00');
     if (now > tripEnd) {
@@ -951,14 +953,24 @@ function renderNow() {
   }
 
   if (status.type === 'countdown') {
+    const pad = n => String(n).padStart(2, '0');
+    let countdownHtml;
+    if (status.days > 0) {
+      countdownHtml = `
+        <span class="big-num">${status.days}</span><span class="unit"> giorni</span>
+        <span class="big-num" style="margin-left:10px">${status.hours}</span><span class="unit"> ore</span>
+        <span class="big-num" style="margin-left:10px">${status.minutes}</span><span class="unit"> min</span>`;
+    } else {
+      countdownHtml = `
+        <span class="big-num">${status.hours}</span><span class="unit">h </span>
+        <span class="big-num">${pad(status.minutes)}</span><span class="unit">m </span>
+        <span class="big-num">${pad(status.seconds)}</span><span class="unit">s</span>`;
+    }
     el.innerHTML = `
       <div class="now-card" style="text-align:center;padding:24px 16px">
         <div style="font-size:14px;color:var(--gold);font-weight:700;margin-bottom:10px">✈️ PARTENZA TRA</div>
-        <div class="countdown">
-          <span class="big-num">${status.days}</span><span class="unit"> giorni</span>
-          <span class="big-num" style="margin-left:10px">${status.hours}</span><span class="unit"> ore</span>
-        </div>
-        <div style="margin-top:8px;font-size:13px;color:var(--muted)">13 Marzo 2026, Venerdì</div>
+        <div class="countdown">${countdownHtml}</div>
+        <div style="margin-top:8px;font-size:13px;color:var(--muted)">13 Marzo 2026 · Volo ore 06:00</div>
       </div>`;
     return;
   }
@@ -1143,8 +1155,8 @@ function init() {
   const dayIdx = DAYS.findIndex(d => d.date === today);
   if (dayIdx !== -1) showDay(dayIdx);
 
-  // Update NOW every 30 seconds
-  setInterval(renderNow, 30000);
+  // Update NOW every second (for live countdown)
+  setInterval(renderNow, 1000);
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
